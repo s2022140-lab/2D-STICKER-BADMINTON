@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html class="dark" lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>{% block title %}2D STICKMAN BADMINTON{% endblock %}</title>
+    
+    <!-- 引入標準 Tailwind Play CDN (保留外掛) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- 引入全域字體與 Material Symbols 圖標 -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+    
+    <!-- 全域大腦交通部：自動負責 ?user= 鎖定與登入保護 (使用 defer 確保 DOM 載入後安全執行一次) -->
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { background-color: #000000; overflow-x: hidden; cursor: crosshair; }
+        
+        /* 100% 完整保留您的霓虹與背景網格核心視覺樣式 */
+        .cyber-grid {
+            background-image: linear-gradient(to right, rgba(0, 219, 233, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 219, 233, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .neon-glow-primary { box-shadow: 0 0 15px rgba(0, 219, 233, 0.4); }
+        .neon-glow-secondary { box-shadow: 0 0 15px rgba(254, 0, 254, 0.4); }
+        
+        .glitch-hover:hover { animation: glitch 0.2s steps(2) infinite; }
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 1px); }
+            40% { transform: translate(-2px, -1px); }
+            60% { transform: translate(2px, 1px); }
+            80% { transform: translate(2px, -1px); }
+            100% { transform: translate(0); }
+        }
+        .hud-border {
+            border: 1px solid rgba(0, 219, 233, 0.2);
+            clip-path: polygon(
+                0% 10px, 10px 0%, 
+                calc(100% - 10px) 0%, 100% 10px, 
+                100% calc(100% - 10px), calc(100% - 10px) 100%, 
+                10px 100%, 0% calc(100% - 10px)
+            );
+        }
+
+        /* Toast 動畫 */
+        @keyframes toast-slide-in {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-toast {
+            animation: toast-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+
+    <!-- 100% 完整鎖定您的 Stitch 配色與尺寸設定，絕不私自修改 -->
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                  "outline-variant": "#3b494b", "on-tertiary": "#3c0090", "on-secondary-fixed-variant": "#810081",
+                  "outline": "#849495", "surface-container-low": "#1c1b1b", "on-tertiary-container": "#7213ff",
+                  "surface": "#131313", "inverse-primary": "#006970", "surface-variant": "#353534",
+                  "on-secondary-fixed": "#380038", "surface-container-lowest": "#0e0e0e", "on-secondary": "#5b005b",
+                  "secondary-container": "#fe00fe", "surface-container-highest": "#353534", "on-primary-fixed-variant": "#004f54",
+                  "inverse-on-surface": "#313030", "background": "#131313", "inverse-surface": "#e5e2e1",
+                  "surface-bright": "#3a3939", "on-surface-variant": "#b9cacb", "on-primary": "#00363a",
+                  "primary-container": "#00f0ff", "tertiary-fixed": "#e9ddff", "surface-dim": "#131313",
+                  "error": "#ffb4ab", "on-primary-container": "#006970", "primary-fixed-dim": "#00dbe9",
+                  "error-container": "#93000a", "tertiary": "#faf3ff", "surface-container": "#201f1f",
+                  "on-tertiary-fixed-variant": "#5700c9", "primary-fixed": "#7df4ff", "on-error-container": "#ffdad6",
+                  "on-secondary-container": "#500050", "on-tertiary-fixed": "#23005b", "tertiary-container": "#e1d2ff",
+                  "on-surface": "#e5e2e1", "secondary-fixed": "#ffd7f5", "primary": "#dbfcff",
+                  "on-primary-fixed": "#002022", "on-background": "#e5e2e1", "secondary-fixed-dim": "#ffabf3",
+                  "on-error": "#690005", "tertiary-fixed-dim": "#d1bcff", "surface-tint": "#00dbe9",
+                  "surface-container-high": "#2a2a2a", "secondary": "#ffabf3"
+              },
+              "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+              "spacing": { "unit": "4px", "card-padding": "12px", "safe-margin": "48px", "gutter": "16px", "hud-offset": "32px" },
+              "fontFamily": {
+                  "headline-md": ["Space Grotesk"], "label-caps": ["Space Mono"], "label-sm": ["Geist"],
+                  "headline-lg": ["Space Grotesk"], "body-lg": ["Geist"], "display-lg": ["Space Grotesk"], "body-md": ["Geist"]
+              },
+              "fontSize": {
+                  "headline-md": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                  "label-caps": ["12px", {"lineHeight": "1.0", "letterSpacing": "0.15em", "fontWeight": "700"}],
+                  "label-sm": ["10px", {"lineHeight": "1.0", "fontWeight": "500"}],
+                  "headline-lg": ["40px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                  "body-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                  "display-lg": ["72px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                  "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen text-on-surface p-safe-margin relative overflow-y-auto selection:bg-secondary-container/30">
+    
+    <!-- 賽博背景層 -->
+    <div class="fixed inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
+    <div class="fixed inset-0 scanlines pointer-events-none z-50"></div>
+    
+    <!-- 全域賽博彈窗/通知容器 (不破壞任何現有美術佈局，絕對置頂) -->
+    <div id="cyber-toast-container" class="fixed bottom-6 right-6 z-[99999] flex flex-col gap-3 pointer-events-none"></div>
+    
+    <!-- 子網頁唯一注入槽 -->
+    {% block content %}{% endblock %}
+
+    <!-- 系統功能控制腳本 -->
+    <script>
+        // 參數解析工具
+        function getUrlParam(name) {
+            let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            let r = window.location.search.substr(1).match(reg);
+            if (r != null) return decodeURIComponent(r[2]);
+            return null;
+        }
+
+        // 全域霓虹風格提示框 (代替傳統 Alert，100% 整合您的主題配色與 hud-border 剪裁)
+        window.showCyberToast = function(message, type = 'info') {
+            const container = document.getElementById('cyber-toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            // 使用您的 hud-border、glass-panel 結構與主題顏色，完美保留賽博感
+            toast.className = `hud-border px-6 py-3 text-sm font-label-caps flex items-center gap-3 pointer-events-auto shadow-[0_0_15px_rgba(0,219,233,0.2)] bg-surface-container-lowest/95 animate-toast`;
+            
+            if (type === 'error') {
+                toast.style.borderColor = 'rgba(254, 0, 254, 0.4)';
+                toast.style.boxShadow = '0 0 15px rgba(254, 0, 254, 0.2)';
+                toast.innerHTML = `
+                    <span class="material-symbols-outlined text-secondary text-sm">report</span>
+                    <span class="text-secondary">${message}</span>
+                `;
+            } else {
+                toast.style.borderColor = 'rgba(0, 219, 233, 0.4)';
+                toast.style.boxShadow = '0 0 15px rgba(0, 219, 233, 0.2)';
+                toast.innerHTML = `
+                    <span class="material-symbols-outlined text-primary-fixed-dim text-sm">info</span>
+                    <span class="text-primary-fixed-dim">${message}</span>
+                `;
+            }
+            
+            container.appendChild(toast);
+            
+            // 3秒後平滑淡出並自動銷毀
+            setTimeout(() => {
+                toast.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+                toast.style.opacity = "0";
+                toast.style.transform = "translateY(10px)";
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        };
+
+        // 重新封裝系統未開放提示，調用新版賽博通知
+        function systemOffline() {
+            window.showCyberToast("⚡ [系統核心連線中] 該功能尚未開放，敬請期待！", "info");
+        }
+    </script>
+</body>
+</html>

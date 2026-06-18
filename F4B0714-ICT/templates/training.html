@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}AI TRAINING | 2D STICKMAN BADMINTON{% endblock %}
+
+{% block content %}
+<!-- 載入此頁專屬字型與 Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+
+<style>
+    body {
+        background-color: #10131a;
+        color: #e1e2eb;
+        overflow: hidden; /* 徹底封印全域滾動條 */
+    }
+    /* 💡 修正：調低模糊度 (blur 4px)，改為晶瑩高對比黑底，徹底消除濃霧感 */
+    .glass-panel {
+        background: rgba(16, 19, 26, 0.75);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border: 1px solid rgba(0, 219, 233, 0.15);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-panel:hover {
+        border: 1px solid rgba(0, 219, 233, 0.5);
+        box-shadow: 0 0 20px rgba(0, 219, 233, 0.2);
+        background: rgba(25, 28, 38, 0.85);
+    }
+    .neon-glow {
+        text-shadow: 0 0 8px rgba(0, 219, 233, 0.8);
+    }
+    .scanline {
+        background: linear-gradient(to bottom, transparent 50%, rgba(0, 219, 233, 0.05) 50%);
+        background-size: 100% 4px;
+        pointer-events: none;
+    }
+</style>
+
+<!-- 鋼鐵鎖屏頂層容器：強制鎖死全螢幕，防止任何縱向與橫向滾動條 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#10131a] z-30 m-0 p-0 select-none">
+    
+    <!-- 頂部導航欄：微幅放大，高度改為 h-20，內距 px-12 -->
+    <header class="w-full h-20 px-12 flex justify-between items-center border-b border-outline-variant/30 bg-surface/85 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <!-- 標題與光暈放大 (text-3xl md:text-4xl) -->
+            <h1 class="font-display-lg text-3xl md:text-4xl text-primary-fixed-dim drop-shadow-[0_0_12px_rgba(0,219,233,0.6)] font-bold uppercase leading-none">AI TRAINING</h1>
+            <div class="h-8 w-px bg-outline-variant mx-2"></div>
+            <span class="text-on-surface-variant font-semibold text-sm md:text-base">人機對戰訓練營</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- 返回大廳按鈕：放大至 px-5 py-2.5 -->
+            <button onclick="location.href = window.getCyberUrl('/lobby')" class="flex items-center gap-2 px-5 py-2.5 border border-primary/30 rounded-lg hover:bg-surface-variant transition-all text-xs font-label-caps group text-on-surface font-bold">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span class="group-hover:text-primary-fixed-dim">返回大廳</span>
+            </button>
+            
+            <!-- 金幣流光框：與其餘兩頁完全一致 -->
+            <div class="flex items-center gap-2 glass-panel px-5 py-2.5 rounded-lg border border-primary/20 shadow-[0_0_12px_rgba(0,219,233,0.15)] flex-shrink-0">
+                <span class="flex items-center gap-1.5 font-label-caps text-sm text-primary-fixed-dim font-bold">
+                    <span class="material-symbols-outlined text-primary text-xl select-none drop-shadow-[0_0_8px_rgba(0,219,233,0.6)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                    金幣: <span id="trainingCoins">0</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Background Atmospheric Effect -->
+    <div class="absolute inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(0,219,233,0.03)_0%,_transparent_70%)]"></div>
+        <div class="scanline absolute inset-0 opacity-15"></div>
+        <div class="absolute inset-0 overflow-hidden opacity-30">
+            <div class="w-full h-full bg-surface" style="background-image: linear-gradient(rgba(0, 219, 233, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 219, 233, 0.04) 1px, transparent 1px); background-size: 100px 100px;"></div>
+        </div>
+    </div>
+
+    <!-- Main Content - 💡 修正：使用 justify-center 進行完美垂直與水平絕對置中 -->
+    <main class="relative z-10 w-full max-w-[1280px] h-[calc(100vh-5rem)] flex flex-col items-center justify-center px-12 box-border">
+        
+        <!-- Section Header -->
+        <div class="text-center mb-8 flex-shrink-0">
+            <h1 class="font-headline-lg-mobile md:font-headline-lg text-primary-fixed-dim neon-glow uppercase tracking-tighter text-xl md:text-2xl font-bold">
+                人機對戰 - 訓練營 / AI TRAINING
+            </h1>
+            <div class="h-0.5 w-32 bg-gradient-to-r from-transparent via-primary-fixed-dim to-transparent mx-auto mt-3"></div>
+            <p class="font-label-caps text-label-caps text-on-surface-variant mt-3 opacity-70">SELECT YOUR COMBAT SIMULATION LEVEL</p>
+        </div>
+
+        <!-- Difficulty Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[1100px] flex-shrink-0">
+            
+            <!-- Easy Card (💡 修正：使用柔和薄荷綠，降低飽和度) -->
+            <div class="glass-panel group p-6 rounded-xl flex flex-col items-center relative overflow-hidden bg-surface-container-low/40 border-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                <div class="absolute top-0 right-0 p-4 opacity-20 text-emerald-400">
+                    <span class="material-symbols-outlined text-5xl">signal_cellular_1_bar</span>
+                </div>
+                <div class="mb-4 p-3 rounded-full bg-emerald-500/5 border border-emerald-500/20">
+                    <span class="material-symbols-outlined text-emerald-400 text-3xl">child_care</span>
+                </div>
+                <h2 class="font-headline-lg text-lg md:text-xl text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.4)] font-bold mb-1">簡單</h2>
+                <p class="font-label-caps text-[10px] text-on-surface-variant mb-6 tracking-[0.2em]">EASY MODE</p>
+                <div class="w-full space-y-3 mb-8 text-left text-sm">
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">AI反應速</span>
+                        <span class="font-label-caps text-emerald-400 text-xs">SLOW</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">體力消耗</span>
+                        <span class="font-label-caps text-emerald-400 text-xs">LOW</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant font-bold">金幣倍率</span>
+                        <span class="font-label-caps text-emerald-400 text-xs" style="text-shadow: 0 0 8px rgba(16, 185, 129, 0.8);">x1.0</span>
+                    </div>
+                </div>
+                <button onclick="startTraining('easy')" class="w-full py-3 bg-emerald-500 text-black font-bold rounded hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all uppercase tracking-widest active:scale-95 duration-200">
+                    進入對戰
+                </button>
+            </div>
+
+            <!-- Medium Card -->
+            <div class="glass-panel group p-6 rounded-xl flex flex-col items-center relative overflow-hidden border-primary/40 bg-white/5 ring-1 ring-primary/30">
+                <div class="absolute -top-12 -left-12 w-32 h-32 bg-primary/20 blur-3xl rounded-full"></div>
+                <div class="absolute top-0 right-0 p-4 opacity-40 text-primary-fixed-dim">
+                    <span class="material-symbols-outlined text-5xl">signal_cellular_3_bar</span>
+                </div>
+                <div class="mb-4 p-3 rounded-full bg-primary/10 border border-primary/40 animate-pulse">
+                    <span class="material-symbols-outlined text-primary-fixed-dim text-3xl">fitness_center</span>
+                </div>
+                <h2 class="font-headline-lg text-lg md:text-xl text-primary-fixed-dim font-bold mb-1">普通</h2>
+                <p class="font-label-caps text-[10px] text-on-surface-variant mb-6 tracking-[0.2em]">MEDIUM MODE</p>
+                <div class="w-full space-y-3 mb-8 text-left text-sm">
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">AI反應速</span>
+                        <span class="font-label-caps text-primary-fixed-dim text-xs">STABLE</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">體力消耗</span>
+                        <span class="font-label-caps text-primary-fixed-dim text-xs">MID</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant font-bold">金幣倍率</span>
+                        <span class="font-label-caps text-primary-fixed-dim neon-glow text-xs">x1.5</span>
+                    </div>
+                </div>
+                <button onclick="startTraining('medium')" class="w-full py-3 bg-primary-fixed-dim text-on-primary-fixed font-bold rounded hover:shadow-[0_0_25px_rgba(0,219,233,0.8)] shadow-[0_0_15px_rgba(0,219,233,0.3)] transition-all uppercase tracking-widest active:scale-95 duration-200">
+                    進入對戰
+                </button>
+            </div>
+
+            <!-- Hard Card -->
+            <div class="glass-panel group p-6 rounded-xl flex flex-col items-center relative overflow-hidden bg-surface-container-low/40">
+                <div class="absolute top-0 right-0 p-4 opacity-20">
+                    <span class="material-symbols-outlined text-5xl">signal_cellular_4_bar</span>
+                </div>
+                <div class="mb-4 p-3 rounded-full bg-secondary/5 border border-secondary/20">
+                    <span class="material-symbols-outlined text-secondary-fixed-dim text-3xl">bolt</span>
+                </div>
+                <h2 class="font-headline-lg text-lg md:text-xl text-secondary-fixed-dim font-bold mb-1">困難</h2>
+                <p class="font-label-caps text-[10px] text-on-surface-variant mb-6 tracking-[0.2em]">HARD MODE</p>
+                <div class="w-full space-y-3 mb-8 text-left text-sm">
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">AI反應速</span>
+                        <span class="font-label-caps text-secondary-fixed-dim text-xs">RAPID</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant opacity-60">體力消耗</span>
+                        <span class="font-label-caps text-secondary-fixed-dim text-xs">HIGH</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-outline-variant/20">
+                        <span class="text-on-surface-variant font-bold">金幣倍率</span>
+                        <span class="font-label-caps text-secondary-fixed-dim drop-shadow-[0_0_8px_rgba(255,171,243,0.8)] text-xs">x2.0</span>
+                    </div>
+                </div>
+                <button onclick="startTraining('hard')" class="w-full py-3 bg-secondary text-on-secondary font-bold rounded hover:shadow-[0_0_20px_rgba(255,171,243,0.6)] transition-all uppercase tracking-widest active:scale-95 duration-200">
+                    進入對戰
+                </button>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="mt-12 glass-panel px-6 py-2.5 rounded-full flex items-center gap-3 border-outline/30 flex-shrink-0">
+            <span class="material-symbols-outlined text-primary-fixed-dim animate-spin" style="animation-duration: 4s;">settings_heart</span>
+            <span class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest text-[10px]">System Status: Neutral AI Core Calibrated</span>
+        </div>
+    </main>
+</div>
+
+<script>
+    // 1. 滑鼠移入玻璃面板的 3D 微流光光源隨動
+    const panels = document.querySelectorAll('.glass-panel');
+    panels.forEach(panel => {
+        panel.addEventListener('mousemove', (e) => {
+            const rect = panel.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            panel.style.setProperty('--mouse-x', `${x}px`);
+            panel.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+
+    // 2. 動態讀取 SQLite 資料庫中的真實金幣餘額，實現三頁面絕對同步
+    function fetchCoins() {
+        const activeUser = getUrlParam('user') || "CyberPlayer";
+        fetch(`/api/user_info?user=${encodeURIComponent(activeUser)}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("trainingCoins").innerText = data.coins;
+            })
+            .catch(err => {
+                console.warn("無法取得伺服器金幣存檔，加載預設離線金幣。");
+                document.getElementById("trainingCoins").innerText = "300";
+            });
+    }
+
+    // 3. 實體啟動人機對戰：攜帶難度與特工參數跳轉
+    function startTraining(difficulty) {
+        const targetUrl = `/game?mode=training&difficulty=${difficulty}`;
+        window.location.href = window.getCyberUrl(targetUrl);
+    }
+
+    // 參數解析工具
+    function getUrlParam(name) {
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        return null;
+    }
+
+    // 初始化呼叫
+    fetchCoins();
+</script>
+{% endblock %}

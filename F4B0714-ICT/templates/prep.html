@@ -1,0 +1,414 @@
+<!-- templates/prep.html -->
+{% extends "base.html" %}
+{% block title %}BATTLE PREP | 2D STICKMAN BADMINTON{% endblock %}
+
+{% block content %}
+<!-- 鋼鐵鎖屏頂層容器：強制鎖死全螢幕，防止任何縱向與橫向滾動條 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#000000] z-30 m-0 p-0 select-none">
+
+    <!-- 全域固定頂部控制條 (Stitch 原版樣式) -->
+    <header class="w-full h-20 px-12 flex justify-between items-center border-b border-outline-variant/30 bg-surface/85 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="font-display-lg text-2xl md:text-3xl text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.5)]">BATTLE PREP</h1>
+            <div class="h-6 w-px bg-outline-variant mx-2"></div>
+            <span class="text-on-surface-variant font-medium text-sm">特工戰備整裝室</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- 修正：使用全域交通 getCyberUrl，確保安全退回大廳，防止退回到登入頁 -->
+            <button onclick="location.href = window.getCyberUrl('/lobby')" class="flex items-center gap-2 px-4 py-2 border border-primary/30 rounded-lg hover:bg-surface-variant transition-all text-xs font-label-caps group">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span class="group-hover:text-primary-fixed-dim">返回大廳</span>
+            </button>
+            
+            <!-- 統一樣式：賽博流光金幣顯示框 -->
+            <div class="flex items-center gap-2 glass-panel px-4 py-2 rounded-lg border border-primary/20 shadow-[0_0_10px_rgba(0,219,233,0.15)] flex-shrink-0">
+                <span class="flex items-center gap-1.5 font-label-caps text-xs text-primary-fixed-dim font-bold">
+                    <span class="material-symbols-outlined text-primary text-lg select-none drop-shadow-[0_0_8px_rgba(0,219,233,0.6)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                    金幣: <span id="prepCoins">0</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主整裝面板：整體高度完全鎖定，使用 p-5 緊湊布局，杜絕工作列擠壓 -->
+    <main class="w-full max-w-[1280px] h-[calc(100vh-5rem)] flex gap-6 p-5 overflow-hidden text-left box-border">
+        
+        <!-- 左側欄：特工/武器切換。已配置 overflow-y-auto 與滾動容器，保證新增角色後滾動條可用 -->
+        <section class="flex-grow flex flex-col gap-6 overflow-hidden h-full box-border">
+            <!-- 頁籤按鈕組 -->
+            <div class="flex gap-2 p-1 bg-surface-container-lowest rounded-xl border border-outline-variant/30 flex-shrink-0">
+                <button id="btnChars" onclick="switchTab('chars')" class="flex-grow py-3 rounded-lg bg-primary-fixed-dim text-on-primary-fixed font-bold flex justify-center items-center gap-2 transition-all">
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="font-label-caps text-xs">CHARACTERS / 特工</span>
+                </button>
+                <button id="btnRackets" onclick="switchTab('rackets')" class="flex-grow py-3 rounded-lg hover:bg-surface-variant text-on-surface-variant font-medium flex justify-center items-center gap-2 transition-all">
+                    <span class="material-symbols-outlined">sports_tennis</span>
+                    <span class="font-label-caps text-xs">RACKETS / 武器</span>
+                </button>
+            </div>
+            
+            <!-- 局部卡片網格滾動區：在此設定溢出滾動，方便未來無限制增加角色與球拍 -->
+            <div id="itemsGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 h-full pb-8">
+                <!-- 由 JS 動態注入 -->
+            </div>
+        </section>
+
+        <!-- 右側欄：特工與裝備全息卡片 (實施高密度空間收縮) -->
+        <aside class="w-[420px] flex-shrink-0 flex flex-col h-full box-border overflow-hidden">
+            <div class="glass-panel rounded-2xl flex-grow flex flex-col p-5 relative border-2 border-primary-fixed-dim/30 shadow-2xl overflow-hidden h-full justify-between">
+                <div class="absolute top-4 right-4"><span id="serialNum" class="font-label-caps text-[10px] text-primary-fixed-dim opacity-50">UNIT #01</span></div>
+                
+                <div class="relative z-10 flex-grow flex flex-col items-center justify-center text-center">
+                    <!-- 💡 空間優化：w-48 h-48 -> w-32 h-32，mb-4 -> mb-2 -->
+                    <div class="w-32 h-32 relative mb-2 flex items-center justify-center">
+                        <div id="glowCircle" class="absolute inset-0 bg-primary-fixed-dim/10 blur-[40px] rounded-full"></div>
+                        <!-- 💡 空間優化：text-8xl -> text-7xl -->
+                        <span id="previewIcon" class="text-7xl relative z-20 block filter drop-shadow-[0_0_20px_rgba(0,219,233,0.5)]">🏃</span>
+                    </div>
+                    <div>
+                        <h2 id="previewName" class="font-headline-lg text-2xl text-primary-fixed-dim mb-0.5">賽博跑手</h2>
+                        <p id="previewSub" class="font-label-caps text-[10px] text-on-surface-variant tracking-widest uppercase">NEON RUNNER</p>
+                    </div>
+                </div>
+
+                <!-- 💡 空間優化：space-y-4 mb-6 -> space-y-2 mb-3 -->
+                <div id="statsSection" class="relative z-10 space-y-2 mb-3"></div>
+
+                <!-- 特化大招欄位 (💡 空間優化：mb-4 -> mb-2，大招描述 100% 完整保留) -->
+                <div class="relative z-10 p-3 bg-surface-container-low rounded-lg border-l-4 border-primary-fixed-dim text-left mb-2">
+                    <div id="skillTitle" class="font-label-caps text-[10px] text-primary-fixed-dim mb-1 font-bold">⚡ 特化大招</div>
+                    <p id="previewDesc" class="text-xs text-on-surface-variant leading-relaxed">讀取中...</p>
+                </div>
+
+                <div class="relative z-10 pt-2 flex-shrink-0">
+                    <button id="equipBtn" onclick="equipSelected()" class="w-full py-4 bg-primary-fixed-dim hover:bg-primary transition-all rounded-xl font-headline-md text-headline-md text-on-primary-fixed flex items-center justify-center gap-3 active:scale-95 shadow-[0_0_25px_rgba(0,219,233,0.3)]">
+                        <span class="font-label-caps tracking-widest">部署裝備 EQUIP UNIT</span>
+                        <span class="material-symbols-outlined text-2xl">bolt</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script>
+    // 1. 高強度客戶端元數據防禦機制 (Metadata Fallback) - 已徹底更正 JS 註解語法
+    const FALLBACK_GEAR_DATA = {
+        "characters": {
+            "neon_runner": {
+                "name": "賽博跑手",
+                "icon": "🏃",
+                "ultimate_name": "⚡ 時空瞬返 (消耗 3 格)",
+                "desc": "持續 4.5 秒，跑手速度 +40% 並產生幾何殘影。若球在身邊即將落地，會自動發動滑步瞬移救援擊球，拉扯性極佳。",
+                "stats": { "speed": 10, "jump": 14, "defense": 85 }
+            },
+            "shadow_ninja": {
+                "name": "影子忍者",
+                "icon": "🐱‍👤", // 100% 完整保留您的原裝 🐱‍👤 圖標
+                "ultimate_name": "⚔️ 影流瞬切 (消耗 4 格)",
+                "desc": "擊球時分裂出 1 真 1 假雙重重疊殘影球。過網瞬間，假球會立刻化為煙霧消失，具有極強的網前戰術欺騙性。",
+                "stats": { "speed": 9, "jump": 18, "defense": 75 }
+            },
+            "cyber_dog": {
+                "name": "柴犬汪星人",
+                "icon": "🐶",
+                "ultimate_name": "🔊 神犬狂吠 (消耗 5 格)",
+                "desc": "聲波圓圈擴散且畫面抖動 1 秒。球體飛行時帶有 S 形波浪震顫軌跡，同時對手在 2.5 秒內被小幅減速 20%。",
+                "stats": { "speed": 11, "jump": 13, "defense": 80 }
+            },
+            "iron_mecha": {
+                "name": "鋼鐵機甲",
+                "icon": "🤖",
+                "ultimate_name": "🛡️ 泰坦鐵壁 (消耗 6 格)",
+                "desc": "持續 3.0 秒。身前生成一個亮藍色的電磁防禦盾牌，自動將碰觸到的對手羽毛球反射回網前，防守性能極致強悍。",
+                "stats": { "speed": 6, "jump": 12, "defense": 99 }
+            },
+            "power_apple": {
+                "name": "爆能蘋果",
+                "icon": "🍎",
+                "ultimate_name": "☄️ 流星重殺 (消耗 8 格)",
+                "desc": "僅限下一擊。擊球初速度提升 35%。球過網後重力瞬間翻倍，呈一條筆直的紅色流光雷射彈道陡峭下墜重擊地板。",
+                "stats": { "speed": 8, "jump": 17, "defense": 90 }
+            }
+        },
+        "rackets": {
+            "standard_carbon": {
+                "name": "標準碳素拍",
+                "icon": "🏸",
+                "ultimate_name": "🏸 萬能碳素",
+                "desc": "標準碳素纖維材質，彈性與手感極其均衡，萬能通用。",
+                "hitRadius": 100,
+                "smashMultiplier": 1.2
+            },
+            "photon_saber": {
+                "name": "光子光劍",
+                "icon": "🗡️",
+                "ultimate_name": "🗡️ 高熱光刃",
+                "desc": "高熱光子切割能量武器，揮擊時自帶雷射斬擊，擊球威力小幅提升。",
+                "hitRadius": 105,
+                "smashMultiplier": 1.35
+            },
+            "vortex_gate": {
+                "name": "漩渦重力拍",
+                "icon": "🌀",
+                "ultimate_name": "🌀 漩渦引力",
+                "desc": "拍面內置漩渦引力常數，擊球範圍將大範圍扭曲擴大，極限救球神裝。",
+                "hitRadius": 125,
+                "smashMultiplier": 1.15
+            },
+            "revenge_log": {
+                "name": "復仇滾木",
+                "icon": "🪵",
+                "ultimate_name": "啊 毀滅重擊", // 100% 完整保留您的滾木絕招原始名稱
+                "desc": "粗重原始滾木，揮動與位移緩慢，但殺球威力獲得毀滅性大爆發。",
+                "hitRadius": 85,
+                "smashMultiplier": 1.65
+            },
+            "cyber_bus": {
+                "name": "賽博瘋狂巴士",
+                "icon": "🚌",
+                "ultimate_name": "🚌 超級範圍",
+                "desc": "將赛博巴士作為球拍揮擊！擁有最極致的擊球物理判定，超高惡搞快感。",
+                "hitRadius": 140,
+                "smashMultiplier": 1.25
+            }
+        }
+    };
+
+    function getUrlParam(name) {
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        return null;
+    }
+
+    let rawMetadata = FALLBACK_GEAR_DATA; 
+    let userProfile = {};
+    let currentTab = "chars"; 
+    let selectedItemId = "neon_runner";
+
+    function fetchPrepData() {
+        const activeUser = getUrlParam('user') || "CyberPlayer";
+        
+        fetch('/api/gear_data')
+            .then(res => {
+                if(!res.ok) throw new Error("API offline");
+                return res.json();
+            })
+            .then(meta => {
+                // 💡 安全深度合併：保留本地定義的 ultimate_name 與描述，防止伺服器舊數據覆蓋造成 undefined
+                if(meta.characters) {
+                    Object.keys(meta.characters).forEach(key => {
+                        if(FALLBACK_GEAR_DATA.characters[key]) {
+                            rawMetadata.characters[key] = {
+                                ...FALLBACK_GEAR_DATA.characters[key],
+                                ...meta.characters[key]
+                            };
+                        }
+                    });
+                }
+                if(meta.rackets) {
+                    Object.keys(meta.rackets).forEach(key => {
+                        if(FALLBACK_GEAR_DATA.rackets[key]) {
+                            rawMetadata.rackets[key] = {
+                                ...FALLBACK_GEAR_DATA.rackets[key],
+                                ...meta.rackets[key]
+                            };
+                        }
+                    });
+                }
+            })
+            .catch(err => {
+                console.warn("無法取得後台 gear_data 元數據，自動啟用本地防禦常數運行。");
+                rawMetadata = FALLBACK_GEAR_DATA;
+            })
+            .finally(() => {
+                fetch(`/api/user_info?user=${encodeURIComponent(activeUser)}`)
+                    .then(res => res.json())
+                    .then(profile => {
+                        userProfile = profile;
+                        document.getElementById("prepCoins").innerText = profile.coins;
+                        
+                        if (!selectedItemId || (currentTab === "chars" && !FALLBACK_GEAR_DATA.characters[selectedItemId]) || (currentTab === "rackets" && !FALLBACK_GEAR_DATA.rackets[selectedItemId])) {
+                            selectedItemId = currentTab === "chars" ? profile.current_character : profile.current_racket;
+                        }
+                        
+                        renderGrid();
+                        renderPreview();
+                    })
+                    .catch(err => {
+                        console.warn("無法獲取個人特工存檔，加載離線體驗數據。");
+                        userProfile = {
+                            username: activeUser,
+                            coins: 300,
+                            current_character: "neon_runner",
+                            current_racket: "standard_carbon",
+                            unlocked_characters: ["neon_runner"],
+                            unlocked_rackets: ["standard_carbon"]
+                        };
+                        document.getElementById("prepCoins").innerText = userProfile.coins;
+                        renderGrid();
+                        renderPreview();
+                    });
+            });
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        const btnChars = document.getElementById("btnChars");
+        const btnRackets = document.getElementById("btnRackets");
+        
+        if (tab === "chars") {
+            btnChars.className = "flex-grow py-3 rounded-lg bg-primary-fixed-dim text-on-primary-fixed font-bold flex justify-center items-center gap-2 transition-all";
+            btnRackets.className = "flex-grow py-3 rounded-lg hover:bg-surface-variant text-on-surface-variant font-medium flex justify-center items-center gap-2 transition-all";
+            selectedItemId = userProfile.current_character || "neon_runner";
+        } else {
+            btnRackets.className = "flex-grow py-3 rounded-lg bg-primary-fixed-dim text-on-primary-fixed font-bold flex justify-center items-center gap-2 transition-all";
+            btnChars.className = "flex-grow py-3 rounded-lg hover:bg-surface-variant text-on-surface-variant font-medium flex justify-center items-center gap-2 transition-all";
+            selectedItemId = userProfile.current_racket || "standard_carbon";
+        }
+        renderGrid();
+        renderPreview();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById("itemsGrid");
+        const pool = currentTab === "chars" ? rawMetadata.characters : rawMetadata.rackets;
+        const unlockedList = currentTab === "chars" ? (userProfile.unlocked_characters || ["neon_runner"]) : (userProfile.unlocked_rackets || ["standard_carbon"]);
+        const activeId = currentTab === "chars" ? userProfile.current_character : userProfile.current_racket;
+
+        let html = "";
+        Object.keys(pool).forEach(id => {
+            const item = pool[id];
+            const isUnlocked = unlockedList.includes(id);
+            const isEquipped = activeId === id;
+            const isSelected = selectedItemId === id;
+
+            let cardBorder = "border-outline-variant/30";
+            if (isSelected) cardBorder = "border-primary-fixed-dim ring-1 ring-primary-fixed-dim/50 shadow-[0_0_15px_rgba(219,233,0,0.25)]";
+            else if (isEquipped) cardBorder = "border-secondary-fixed-dim/50";
+
+            if (!isUnlocked) {
+                html += `
+                <div class="group relative glass-panel rounded-xl p-3 border ${cardBorder} opacity-50 transition-all cursor-not-allowed overflow-hidden bg-black/30">
+                    <div class="aspect-square w-full rounded-lg bg-black/40 overflow-hidden relative mb-2 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl text-outline-variant">lock</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-label-caps text-xs text-on-surface-variant truncate">${item.name}</span>
+                        <span class="text-[9px] text-secondary uppercase tracking-wider mt-1">LOCKED / 未解鎖</span>
+                    </div>
+                </div>`;
+            } else {
+                html += `
+                <div onclick="selectItem('${id}')" class="group relative glass-panel rounded-xl p-3 border ${cardBorder} transition-all cursor-pointer">
+                    <div class="aspect-square w-full rounded-lg bg-surface-container overflow-hidden relative mb-2 flex items-center justify-center">
+                        <span class="text-6xl transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_15px_rgba(0,240,255,0.7)]">${item.icon}</span>
+                        ${isEquipped ? '<div class="absolute bottom-2 right-2 px-1.5 py-0.5 bg-secondary text-on-secondary font-label-caps text-[8px] rounded shadow-[0_0_10px_#ff007f]">EQUIPPED</div>' : ''}
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-label-caps text-xs text-on-surface truncate">${item.name}</span>
+                        <span class="text-[9px] text-primary uppercase tracking-widest mt-1">AVAILABLE</span>
+                    </div>
+                </div>`;
+            }
+        });
+        grid.innerHTML = html;
+    }
+
+    function selectItem(id) {
+        selectedItemId = id;
+        renderGrid();
+        renderPreview();
+    }
+
+    function renderPreview() {
+        const pool = currentTab === "chars" ? rawMetadata.characters : rawMetadata.rackets;
+        const item = pool[selectedItemId];
+        if(!item) return;
+
+        document.getElementById("previewIcon").innerText = item.icon;
+        document.getElementById("previewName").innerText = item.name;
+        document.getElementById("previewSub").innerText = selectedItemId.toUpperCase().replace("_", " ");
+        document.getElementById("previewDesc").innerText = item.desc;
+        
+        let statsHTML = "";
+        if (currentTab === "chars") {
+            // 已完美對接伺服器端發放的最新大招名稱與格數，拒絕 undefined
+            document.getElementById("skillTitle").innerText = item.ultimate_name || "⚡ 特化大招";
+            document.getElementById("serialNum").innerText = `AGENT #${selectedItemId.toUpperCase().substr(0,4)}`;
+            
+            const stats = item.stats;
+            statsHTML += createProgressBar("SPEED / 速度", stats.speed, 12, "#00f0ff");
+            statsHTML += createProgressBar("JUMP / 彈跳", Math.abs(stats.jump), 18, "#ff007f");
+            // 💡 已將原本容易混淆的「STAMINA / 能量」更名為「DEFENSE / 防守」
+            statsHTML += createProgressBar("DEFENSE / 防守", stats.defense, 100, "#ccff00");
+        } else {
+            // 已完美對接武器球拍特徵稱號
+            document.getElementById("skillTitle").innerText = item.ultimate_name || "🏸 武器特徵";
+            document.getElementById("serialNum").innerText = `GEAR #${selectedItemId.toUpperCase().substr(0,4)}`;
+            
+            statsHTML += createProgressBar("HIT ZONE / 擊球範圍", item.hitRadius, 140, "#00f0ff");
+            statsHTML += createProgressBar("POWER / 殺球威力", item.smashMultiplier * 100, 180, "#ff007f");
+        }
+        document.getElementById("statsSection").innerHTML = statsHTML;
+
+        const equipBtn = document.getElementById("equipBtn");
+        const activeId = currentTab === "chars" ? userProfile.current_character : userProfile.current_racket;
+        if (activeId === selectedItemId) {
+            equipBtn.disabled = true;
+            equipBtn.className = "w-full py-4 bg-surface-container-highest text-on-surface-variant opacity-50 rounded-xl font-headline-md text-headline-md flex items-center justify-center gap-3 cursor-not-allowed";
+        } else {
+            equipBtn.disabled = false;
+            equipBtn.className = "w-full py-4 bg-primary-fixed-dim hover:bg-primary transition-all rounded-xl font-headline-md text-headline-md text-on-primary-fixed flex items-center justify-center gap-3 active:scale-95 shadow-[0_0_25px_rgba(0,219,233,0.3)]";
+        }
+    }
+
+    function createProgressBar(label, value, max, color) {
+        let pct = (value / max) * 100;
+        return `
+        <div class="flex flex-col gap-1 text-left">
+            <div class="flex justify-between items-end mb-1">
+                <span class="font-label-caps text-[9px] text-on-surface-variant">${label}</span>
+                <span class="font-label-caps text-[9px]" style="color:${color}">${Math.round(pct)}%</span>
+            </div>
+            <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width:${pct}%; background:${color}; box-shadow:0 0 8px ${color}"></div>
+            </div>
+        </div>`;
+    }
+
+    function equipSelected() {
+        let activeChar = userProfile.current_character || "neon_runner";
+        let activeRacket = userProfile.current_racket || "standard_carbon";
+        if (currentTab === "chars") activeChar = selectedItemId;
+        else activeRacket = selectedItemId;
+
+        fetch('/api/select_gear?user=' + encodeURIComponent(userProfile.username), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ character: activeChar, racket: activeRacket })
+        })
+        .then(res => {
+            if(!res.ok) throw new Error("API error");
+            return res.json();
+        })
+        .then(() => {
+            window.showCyberToast ? window.showCyberToast("🚀 特工裝備部署成功！已同步至終端", "info") : alert("裝備部署成功！");
+            fetchPrepData();
+        })
+        .catch(err => {
+            console.warn("無法連線後台部署裝備，進行本地擬態部署：", err);
+            if (currentTab === "chars") {
+                userProfile.current_character = activeChar;
+            } else {
+                userProfile.current_racket = activeRacket;
+            }
+            window.showCyberToast ? window.showCyberToast("🚀 裝備部署成功！(本地端同步)", "info") : alert("裝備部署成功！");
+            fetchPrepData();
+        });
+    }
+
+    fetchPrepData();
+</script>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}GACHA CENTER | 2D STICKMAN BADMINTON{% endblock %}
+
+{% block content %}
+<!-- 鋼鐵鎖屏頂層容器：強制鎖死全螢幕，防止任何縱向與橫向滾動條 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#000000] z-30 m-0 p-0 select-none">
+
+    <!-- 全域頂端狀態控制條 (Stitch 原版樣式) -->
+    <header class="w-full h-20 px-12 flex justify-between items-center border-b border-outline-variant/30 bg-surface/85 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <span class="font-display-lg text-2xl md:text-3xl text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.5)]">GACHA CENTER</span>
+            <div class="h-6 w-px bg-outline-variant mx-2"></div>
+            <span class="text-on-surface-variant font-medium text-sm">超能扭蛋抽卡空間</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- 修正：使用全域交通 getCyberUrl，確保安全退回大廳，防止退回登入頁 -->
+            <button onclick="location.href = window.getCyberUrl('/lobby')" class="flex items-center gap-2 px-4 py-2 border border-secondary/30 rounded-lg hover:bg-secondary/10 transition-all font-label-caps text-xs text-secondary group">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span class="group-hover:text-secondary-fixed-dim">返回大廳</span>
+            </button>
+            
+            <!-- 統一樣式：賽博流光金幣顯示框 -->
+            <div class="flex items-center gap-2 glass-panel px-4 py-2 rounded-lg border border-primary/20 shadow-[0_0_10px_rgba(0,219,233,0.15)] flex-shrink-0">
+                <span class="flex items-center gap-1.5 font-label-caps text-xs text-primary-fixed-dim font-bold">
+                    <span class="material-symbols-outlined text-primary text-lg select-none drop-shadow-[0_0_8px_rgba(0,219,233,0.6)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                    金幣: <span id="gachaCoins">0</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 抽卡核心面板：垂直水位置中且絕無滾動條 -->
+    <main class="flex-grow flex flex-col items-center justify-center relative px-12 text-center overflow-hidden box-border h-[calc(100vh-5rem)]">
+        <div class="w-full max-w-7xl grid grid-cols-12 gap-6 items-center">
+            
+            <!-- Left Side HUD Overlay -->
+            <div class="col-span-3 flex flex-col gap-4 text-left">
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-l-primary-fixed-dim bg-surface-container/20">
+                    <p class="font-label-caps text-[10px] text-primary-fixed-dim mb-1">NEON GACHA POOL</p>
+                    <h3 class="font-headline-lg text-xl text-on-surface">限定裝備空投箱</h3>
+                    <p class="text-on-surface-variant text-xs mt-2 leading-relaxed">解鎖擁有毀滅性殺球威力的武器「🌲 復仇滾木」、或彈跳力驚人的特工「🍎 爆能蘋果」。</p>
+                </div>
+                <!-- 點擊觸發機率公示彈窗 -->
+                <div onclick="toggleRatesModal()" class="glass-panel p-4 rounded-xl flex items-center justify-between group cursor-pointer hover:border-primary-fixed-dim/50 hover:bg-primary/5 transition-all bg-surface-container/20 border border-outline/10">
+                    <span class="font-label-caps text-[10px] text-on-surface-variant">機率公示 DROP RATES</span>
+                    <span class="material-symbols-outlined text-on-surface-variant text-sm group-hover:text-primary-fixed-dim">arrow_forward_ios</span>
+                </div>
+            </div>
+
+            <!-- Center: 賽博脈衝羽毛球 Gacha 主視覺 Banner -->
+            <div class="col-span-6 flex flex-col items-center">
+                <div class="relative w-full aspect-video rounded-2xl overflow-hidden glass-panel border-2 border-primary-fixed-dim/20 shadow-2xl">
+                    <!-- 💡 已更動路徑為您指定的本地 `static/assets/images/gacha1.png` 實體圖片 -->
+                    <img alt="Neon Gault Banner" class="w-full h-full object-cover mix-blend-screen opacity-90" src="{{ url_for('static', filename='assets/images/gacha1.png') }}">
+                    <!-- Overlay Labels -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+                    <div class="absolute bottom-6 left-6 text-left">
+                        <span class="bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-3 py-1 rounded-full mb-2 inline-block">LIMITED EVENT</span>
+                        <h2 class="font-display-lg text-4xl text-white drop-shadow-md tracking-widest font-black">NEON GACHA</h2>
+                    </div>
+                </div>
+                <!-- 閃爍傳送底座 -->
+                <div id="gachaPod" class="mt-4 rounded-xl w-64 h-16 flex justify-center items-center font-headline-md text-base text-white border-2 border-primary shadow-[0_0_20px_rgba(0,219,233,0.4)] bg-black/60 transition-all duration-300">
+                    <span id="gachaDisplay" class="font-bold tracking-wide">能量穩定，預備傳送...</span>
+                </div>
+            </div>
+
+            <!-- Right HUD Overlay -->
+            <div class="col-span-3 flex flex-col gap-4 text-right">
+                <div class="glass-panel p-6 rounded-xl border-r-4 border-r-secondary-fixed-dim bg-surface-container/20">
+                    <p class="font-label-caps text-[10px] text-secondary-fixed-dim mb-1">PITY COUNTER</p>
+                    <h3 class="font-display-lg text-4xl text-on-surface font-bold"><span id="pityCount" class="text-secondary neon-text-pink">0</span><span class="text-xl">/10</span></h3>
+                    <p class="text-on-surface-variant text-xs mt-2 leading-relaxed">內置保底機制。若連續抽取 9 次未得新項目，第 10 次抽卡必定強制解鎖一個全新未解鎖特工或武器！重複裝備自動補貼 80 金幣。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-8 flex gap-6 w-full max-w-md justify-center items-center">
+            <button onclick="drawGacha()" class="group relative w-full h-16 bg-primary-fixed-dim rounded-lg shadow-[0_0_25px_rgba(0,219,233,0.5)] overflow-hidden transition-all hover:scale-105 active:scale-95 flex flex-col items-center justify-center">
+                <span class="font-headline-md text-lg text-on-primary-fixed font-bold tracking-wider">🎰 啟動超能單抽</span>
+                <span class="font-label-caps text-[10px] text-on-primary-fixed font-semibold">150 金幣 / DROP</span>
+                <div class="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-white/40"></div>
+                <div class="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-white/40"></div>
+            </button>
+        </div>
+    </main>
+</div>
+
+<!-- 完美保留視覺風格之機率公示彈窗 -->
+<div id="ratesModal" class="hidden fixed inset-0 z-[100000] flex items-center justify-center bg-black/85 backdrop-blur-md">
+    <div class="glass-panel p-8 rounded-xl border border-primary-fixed-dim/30 w-full max-w-md relative text-left">
+        <button onclick="toggleRatesModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-primary transition-colors">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <h3 class="font-headline-lg text-xl text-primary-fixed-dim drop-shadow-[0_0_8px_rgba(0,219,233,0.3)] mb-4">🎰 傳送空投機率公示</h3>
+        <p class="font-label-caps text-[10px] text-on-surface-variant tracking-widest uppercase mb-4">NEON GACHA DROP RATES</p>
+        
+        <div class="space-y-4">
+            <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
+                <span class="text-sm font-medium text-white flex items-center gap-2">👑 稀有特工 / 限定武器 (20% 概率)</span>
+                <span class="font-mono text-primary-fixed-dim font-bold">20.00%</span>
+            </div>
+            <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
+                <span class="text-sm font-medium text-white flex items-center gap-2">重複複製品 (轉 80金幣複製補貼)</span>
+                <span class="font-mono text-secondary font-bold">80.00%</span>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-3 bg-surface-container-low rounded-lg border-l-4 border-secondary text-xs text-on-surface-variant leading-relaxed">
+            🛡️ <strong class="text-white">保底防非機制：</strong><br>
+            系統內置 10 次抽取保底。第 10 次抽取若未取得新項目，系統將強制解鎖一個目前未擁有的高階特工或球拍。
+        </div>
+        
+        <button onclick="toggleRatesModal()" class="mt-6 w-full py-3 bg-primary-fixed-dim text-on-primary-fixed font-bold font-headline-md text-sm rounded hover:shadow-[0_0_15px_rgba(0,219,233,0.4)] transition-all">
+            確認並關閉
+        </button>
+    </div>
+</div>
+
+<script>
+    let userCoins = 300;
+    let pityCounter = 0;
+
+    function toggleRatesModal() {
+        const modal = document.getElementById("ratesModal");
+        modal.classList.toggle("hidden");
+    }
+
+    function fetchGachaData() {
+        const activeUser = getUrlParam('user') || "CyberPlayer";
+        
+        // 從本地快取同步保底計數器
+        pityCounter = parseInt(localStorage.getItem(`cyber_gacha_pity_${activeUser}`)) || 0;
+        document.getElementById("pityCount").innerText = pityCounter;
+
+        fetch(`/api/user_info?user=${encodeURIComponent(activeUser)}`)
+            .then(res => res.json())
+            .then(data => {
+                userCoins = data.coins;
+                // 修正：動態渲染時直接寫入數值，保留流光框架下的圖標與字樣
+                document.getElementById("gachaCoins").innerText = data.coins;
+            })
+            .catch(err => {
+                console.warn("無法獲取個人抽卡資訊，載入離線備份數值。");
+            });
+    }
+
+    function drawGacha() {
+        if (userCoins < 150) {
+            window.showCyberToast ? window.showCyberToast("金幣餘額不足 150 幣！請進入球場戰鬥賺取！", "error") : alert("金幣不足！");
+            return;
+        }
+
+        const disp = document.getElementById("gachaDisplay");
+        const pod = document.getElementById("gachaPod");
+        
+        pod.style.borderColor = "#00f0ff";
+        pod.style.boxShadow = "0 0 25px rgba(0, 240, 255, 0.8)";
+        
+        const pool = ["🤖 鋼鐵機甲", "🐶 柴犬汪星人", "🍎 爆能蘋果", "🔵 漩渦重力拍", "🌲 復仇滾木", "🚌 賽博瘋狂巴士", "80金幣 複製補貼"];
+        let cnt = 0;
+        let interval = setInterval(() => {
+            disp.innerText = pool[cnt % pool.length];
+            cnt++;
+        }, 80);
+
+        const activeUser = getUrlParam('user') || "CyberPlayer";
+        let queryParams = `?user=${encodeURIComponent(activeUser)}`;
+        if (pityCounter >= 9) {
+            queryParams += "&force_new=true";
+        }
+
+        fetch(`/api/gacha${queryParams}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                clearInterval(interval);
+                setTimeout(() => {
+                    if (data.status === "success") {
+                        pod.style.borderColor = "#39ff14";
+                        pod.style.boxShadow = "0 0 25px rgba(57, 255, 20, 0.8)";
+                        
+                        if (data.refund) {
+                            disp.innerText = "80 複製轉換";
+                            window.showCyberToast ? window.showCyberToast(`🎰+80 金幣`, "info") : alert(`🎰 +80 金幣`);
+                            pityCounter++;
+                        } else {
+                            disp.innerText = data.reward_name;
+                            window.showCyberToast ? window.showCyberToast(`🎉 恭喜中獎！解鎖稀有裝備：${data.reward_name}`, "info") : alert(`🎉🎉 恭喜中獎！`);
+                            pityCounter = 0;
+                        }
+                        
+                        if (pityCounter >= 10) pityCounter = 0;
+                        localStorage.setItem(`cyber_gacha_pity_${activeUser}`, pityCounter);
+                    }
+                    fetchGachaData(); 
+                }, 150);
+            })
+            .catch(err => {
+                clearInterval(interval);
+                disp.innerText = "傳送失敗";
+                window.showCyberToast ? window.showCyberToast("🎰 API 服務連線失敗，請重試", "error") : alert("API offline");
+            });
+    }
+
+    function getUrlParam(name) {
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        return null;
+    }
+
+    fetchGachaData();
+</script>
+{% endblock %}

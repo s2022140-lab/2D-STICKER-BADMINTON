@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}2D STICKMAN BADMINTON - Battle Lobby{% endblock %}
+
+{% block content %}
+<!-- 鋼鐵鎖屏頂層容器：強制鎖死全螢幕，防止任何縱向與橫向滾動條 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#000000] z-30 m-0 p-0 select-none">
+    
+    <!-- 全域頂端狀態控制條 (Stitch 原版樣式) -->
+    <header class="w-full h-20 px-12 flex justify-between items-center border-b border-outline-variant/30 bg-surface/80 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="font-display-lg text-headline-lg bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary drop-shadow-[0_0_10px_rgba(0,219,233,0.8)] tracking-tighter uppercase">2D STICKMAN BADMINTON</h1>
+        </div>
+        <div class="flex items-center gap-6">
+            <!-- 賽博流光金幣顯示框 -->
+            <div class="flex items-center gap-2 glass-card px-4 py-2 rounded-lg border border-primary/20 shadow-[0_0_10px_rgba(0,219,233,0.15)]">
+                <span class="flex items-center gap-1.5 font-label-caps text-xs text-primary-fixed-dim font-bold">
+                    <span class="material-symbols-outlined text-primary text-lg select-none drop-shadow-[0_0_8px_rgba(0,219,233,0.6)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                    金幣: <span id="userCoins">300</span>
+                </span>
+            </div>
+            <button onclick="handleLogout()" class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200">
+                <span class="material-symbols-outlined text-sm">logout</span>
+                <span class="font-label-caps text-label-caps">登出 TERMINAL</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 核心對戰大廳主面板：尺寸鎖定，適配全螢幕 -->
+    <main class="w-full max-w-[1280px] h-[calc(100vh-5rem)] flex gap-6 p-8 overflow-hidden box-border">
+        
+        <!-- 左側面板：特工資訊與戰備調配 -->
+        <section class="w-1/3 flex flex-col gap-6 h-full overflow-hidden box-border flex-shrink-0">
+            <!-- 特工卡片 -->
+            <div class="glass-card p-4 rounded-xl border-l-4 border-l-primary flex flex-col gap-3 text-left bg-surface-container/30 border border-outline/10">
+                <div class="flex justify-between items-end">
+                    <div class="min-w-0 flex-1 pr-2">
+                        <div class="flex items-center gap-2">
+                            <!-- 靜態名字顯示 -->
+                            <span id="playerNameDisplay" class="font-headline-md text-primary-fixed-dim text-xl font-bold tracking-wide truncate">---</span>
+                            
+                            <!-- 點擊編輯後才呈現的輸入框 -->
+                            <input type="text" id="playerNameInput" maxlength="10" class="hidden bg-surface-container border-b-2 border-primary focus:outline-none text-primary-fixed-dim text-xl font-headline-md w-32 py-0.5 px-1 rounded-sm">
+                            
+                            <!-- 狀態切換按鈕 -->
+                            <button id="renameToggleBtn" class="flex items-center justify-center p-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded transition-all active:scale-95 duration-150">
+                                <span id="renameBtnIcon" class="material-symbols-outlined text-sm select-none">edit</span>
+                            </button>
+                        </div>
+                        <p class="font-label-caps text-[10px] text-primary tracking-widest uppercase mt-1">PLAYER PROFILE</p>
+                    </div>
+                    <span id="playerLvl" class="px-3 py-1 bg-primary text-on-primary font-label-caps text-xs rounded-sm whitespace-nowrap">LVL 01</span>
+                </div>
+                
+                <div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden mt-2">
+                    <!-- 經驗條配置過渡轉換特效 -->
+                    <div id="xpBar" class="bg-primary h-full w-0 neon-glow-primary transition-all duration-1000 ease-out"></div>
+                </div>
+                <!-- 已將勝場數成功替換為真實經驗值比例 -->
+                <div class="flex justify-between font-label-sm text-xs text-on-surface-variant">
+                    <span>經驗值 / EXPERIENCE</span>
+                    <span id="statXp">0 / 200</span>
+                </div>
+            </div>
+
+            <!-- 模組傳送門 -->
+            <div class="flex-grow flex flex-col gap-6 min-h-0">
+                <!-- 修正：移除 hover:border-secondary 邊框發光，改由內置巨型 casino 圖標進行霓虹暈染與微縮放 -->
+                <div onclick="location.href='/gacha?user=' + getUrlParam('user')" class="glass-card flex-grow p-6 rounded-xl relative overflow-hidden group cursor-pointer border border-secondary/20 transition-all duration-300 text-left bg-surface-container/20">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:opacity-30 transition-opacity duration-300">
+                        <span class="material-symbols-outlined text-[120px] text-secondary transition-all duration-300 group-hover:drop-shadow-[0_0_20px_rgba(255,171,243,0.8)] group-hover:scale-105">casino</span>
+                    </div>
+                    <h3 class="font-label-caps text-label-caps text-secondary uppercase tracking-[0.2em] mb-2">GACHA CENTER</h3>
+                    <p class="font-headline-md text-headline-md text-on-surface">抽卡中心</p>
+                    <p class="font-body-md text-on-surface-variant mt-2 text-[12px]">Unlock legendary athletes and custom weapons.</p>
+                    <div class="mt-4 inline-flex items-center gap-2 text-secondary font-label-caps text-[10px] group-hover:gap-4 transition-all">ENTER HUB <span class="material-symbols-outlined text-sm">arrow_forward</span></div>
+                </div>
+                
+                <!-- 修正：移除 hover:border-primary 邊框發光，改由內置巨型 person_search 圖標霓虹暈染與微縮放 -->
+                <div onclick="location.href='/prep?user=' + getUrlParam('user')" class="glass-card flex-grow p-6 rounded-xl relative overflow-hidden group cursor-pointer border border-primary/20 transition-all duration-300 text-left bg-surface-container/20">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:opacity-30 transition-opacity duration-300">
+                        <span class="material-symbols-outlined text-[120px] text-primary transition-all duration-300 group-hover:drop-shadow-[0_0_20px_rgba(0,240,255,0.8)] group-hover:scale-105">person_search</span>
+                    </div>
+                    <div>
+                        <h3 class="font-headline-md text-headline-md text-on-surface leading-none">戰備選角</h3>
+                        <p class="font-label-caps text-[10px] text-primary tracking-widest uppercase mt-1">BATTLE PREP</p>
+                    </div>
+                    <p class="font-body-md text-on-surface-variant mt-3 text-[12px]">Configure your athlete and gear with visual cards.</p>
+                    <div class="mt-4 inline-flex items-center gap-2 text-primary font-label-caps text-[10px] group-hover:gap-4 transition-all">SELECT HERO <span class="material-symbols-outlined text-sm">arrow_forward</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 中間面板：賽博場館入口 -->
+        <section class="flex-grow flex flex-col gap-6 h-full overflow-hidden box-border">
+            <div class="relative flex-grow rounded-xl overflow-hidden glass-card group border border-outline/10 bg-surface-container/10">
+                <img alt="Arena Background" class="absolute inset-0 w-full h-full object-cover mix-blend-screen opacity-40 group-hover:opacity-60 transition-opacity duration-700 pointer-events-none" src="{{ url_for('static', filename='assets/images/lobby1.png') }}">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none"></div>
+                <div class="absolute bottom-12 inset-x-12 flex flex-col items-center text-center gap-6">
+                    <div>
+                        <span class="font-label-caps text-xs text-primary tracking-[0.4em] uppercase">SYSTEM READY</span>
+                        <h2 class="font-display-lg text-headline-lg text-on-surface drop-shadow-2xl leading-tight">球場區域</h2>
+                        <p class="font-label-caps text-label-sm text-primary tracking-[0.3em] opacity-80 uppercase">COURT ZONE</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="location.href= window.getCyberUrl('/local_pvp')" class="bg-primary text-on-primary py-4 rounded-sm transition-all duration-300 active:scale-95 hover:shadow-[0_0_25px_rgba(0,240,255,0.8)] hover:opacity-90 flex flex-col items-center justify-center gap-1 active-pulse" style="width: 170px; height: 72px;">
+                            <div class="flex items-center gap-3">
+                                <span class="font-headline-md whitespace-nowrap text-black font-bold">多人對戰</span>
+                                <span class="material-symbols-outlined text-black font-bold">sports_tennis</span>
+                            </div>
+                            <span class="font-label-caps text-[9px] tracking-widest text-black font-bold opacity-80">PVP MATCH</span>
+                        </button>
+                        <button onclick="systemOffline()" class="bg-surface-container-highest border-2 border-primary/40 text-primary py-4 rounded-sm hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-1" style="width: 170px; height: 72px;">
+                            <div class="flex items-center gap-3">
+                                <span class="font-headline-md whitespace-nowrap font-bold">排位賽</span>
+                                <span class="material-symbols-outlined">military_tech</span>
+                            </div>
+                            <span class="font-label-caps text-[9px] tracking-widest opacity-80">RANKED MATCH</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 下方人機與數據統計區 -->
+            <div class="h-1/3 flex gap-6 min-h-0">
+                <!-- 修正：移除邊框 highlight 亮線，改由內置巨型 smart_toy 圖標霓虹暈染與微縮放 -->
+                <div onclick="location.href=window.getCyberUrl('/training')" class="flex-1 glass-card rounded-xl p-4 relative overflow-hidden group cursor-pointer border border-secondary/20 transition-all duration-300 text-left bg-surface-container/20">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:opacity-30 transition-opacity duration-300">
+                        <span class="material-symbols-outlined text-[120px] text-secondary transition-all duration-300 group-hover:drop-shadow-[0_0_20px_rgba(255,171,243,0.8)] group-hover:scale-105">smart_toy</span>
+                    </div>
+                    <div><h3 class="font-headline-md text-headline-md text-on-surface leading-none">人機對戰</h3><p class="font-label-caps text-[10px] text-secondary tracking-widest uppercase mt-1">TRAINING CAMP</p></div>
+                    <p class="font-body-md text-on-surface-variant mt-3 text-[12px]">在模擬環境中磨练你的技巧</p>
+                    <div class="mt-4 inline-flex items-center gap-2 text-secondary font-label-caps text-[10px] group-hover:gap-4 transition-all">ENTER TRAINING <span class="material-symbols-outlined text-sm">arrow_forward</span></div>
+                </div>
+                
+                <!-- 修正：移除邊框 highlight 亮線，改由內置巨型 monitoring 圖標霓虹暈染與微縮放 -->
+                <div onclick="systemOffline()" class="flex-1 glass-card rounded-xl p-4 relative overflow-hidden group cursor-pointer border border-secondary/20 transition-all duration-300 text-left bg-surface-container/20">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:opacity-30 transition-opacity duration-300">
+                        <span class="material-symbols-outlined text-[120px] text-on-surface-variant transition-all duration-300 group-hover:drop-shadow-[0_0_20px_rgba(132,148,149,0.8)] group-hover:scale-105">monitoring</span>
+                    </div>
+                    <div><h3 class="font-headline-md text-headline-md text-on-surface leading-none">數據統計</h3><p class="font-label-caps text-[10px] text-on-surface-variant tracking-widest uppercase mt-1">STATISTICS</p></div>
+                    <!-- 對接真實數據統計欄位 -->
+                    <p id="playerStatsText" class="font-body-md text-on-surface-variant mt-3 text-[12px]">Win Rate: 0% | Total Matches: 0</p>
+                    <div class="mt-4 inline-flex items-center gap-2 text-on-surface-variant font-label-caps text-[10px] group-hover:gap-4 transition-all">VIEW DETAILS <span class="material-symbols-outlined text-sm">arrow_forward</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側面板：排行榜與段位 -->
+        <section class="w-1/4 flex flex-col gap-6 h-full overflow-hidden box-border flex-shrink-0">
+            <div class="glass-card flex-grow rounded-xl p-4 flex flex-col text-left overflow-hidden min-h-0 bg-surface-container/20 border border-outline/10">
+                <div class="flex items-center justify-between mb-6 flex-shrink-0">
+                    <div>
+                        <h3 class="font-headline-md text-headline-md text-on-surface leading-none">特工段位排行</h3>
+                        <p class="font-label-caps text-[10px] text-primary tracking-widest uppercase">RANKING LEADERBOARD</p>
+                    </div>
+                    <span class="material-symbols-outlined text-primary">leaderboard</span>
+                </div>
+                <!-- 滾動條美化列表 -->
+                <div id="leaderboardList" class="flex-grow flex flex-col gap-4 overflow-y-auto pr-1">
+                    <div class="text-center py-12 text-on-surface-variant text-sm">正在載入天梯段位...</div>
+                </div>
+            </div>
+            
+            <!-- 特工段位顯示框 -->
+            <div class="glass-card rounded-xl p-4 flex items-center justify-between text-left flex-shrink-0 bg-surface-container/30 border border-outline/10">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">military_tech</span>
+                        </div>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></div>
+                    </div>
+                    <div>
+                        <p class="font-headline-md text-sm text-on-surface leading-none">目前段位</p>
+                        <p class="font-label-caps text-[9px] text-on-surface-variant uppercase mt-1">RANKING STATUS</p>
+                        <p id="playerCurrentRankText" class="font-label-sm text-[9px] text-primary/80 mt-0.5">---</p>
+                    </div>
+                </div>
+                <button onclick="fetchLobbyData()" class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">refresh</button>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- 本地解耦大廳控制器 -->
+<script src="{{ url_for('static', filename='js/lobby.js') }}"></script>
+{% endblock %}

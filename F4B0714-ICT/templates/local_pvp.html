@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}LOCAL PVP | 2D STICKMAN BADMINTON{% endblock %}
+
+{% block content %}
+<!-- 載入此頁專屬字型與 Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Noto+Sans+TC:wght@400;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+
+<style>
+    /* 強制覆寫母模板的安全內距與滾動條，確保無滾動條並實現幾何置中 */
+    body {
+        background-color: #10131a !important;
+        color: #e1e2eb !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+    }
+    .neon-grid {
+        background-image: 
+            linear-gradient(to right, rgba(0, 219, 233, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 219, 233, 0.08) 1px, transparent 1px);
+        background-size: 50px 50px;
+        perspective: 1000px;
+        transform-style: preserve-3d;
+    }
+    .neon-grid-anim {
+        animation: grid-move 20s linear infinite;
+    }
+    @keyframes grid-move {
+        0% { transform: rotateX(45deg) translateY(0); }
+        100% { transform: rotateX(45deg) translateY(50px); }
+    }
+    /* 晶瑩去霧高對比黑底面板 */
+    .glass-panel {
+        background: rgba(16, 19, 26, 0.85);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border: 1px solid rgba(0, 219, 233, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-panel:hover {
+        background: rgba(25, 28, 38, 0.95);
+    }
+    .glow-cyan {
+        box-shadow: 0 0 20px rgba(0, 219, 233, 0.3);
+    }
+    .glow-magenta {
+        box-shadow: 0 0 20px rgba(254, 0, 254, 0.3);
+    }
+    .scanline {
+        width: 100%;
+        height: 2px;
+        background: rgba(0, 219, 233, 0.1);
+        position: absolute;
+        animation: scan 4s linear infinite;
+        pointer-events: none;
+    }
+    @keyframes scan {
+        0% { top: 0; }
+        100% { top: 100%; }
+    }
+</style>
+
+<!-- 頂層容器 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#10131a] z-30 m-0 p-0 select-none">
+    
+    <!-- Cyberpunk 背景層 -->
+    <div class="absolute inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 neon-grid neon-grid-anim opacity-20"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background"></div>
+        <div class="scanline"></div>
+    </div>
+
+    <!-- 頂部導航欄 (修正 z-index 為標準的 z-50，避免被其他面板遮擋) -->
+    <header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-12 h-16 border-b border-outline-variant/30 bg-surface/85 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="font-display-lg text-2xl md:text-3xl text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.5)] font-bold">LOCAL PVP</h1>
+            <div class="h-6 w-px bg-outline-variant mx-2"></div>
+            <span class="text-on-surface-variant font-medium text-sm">本地雙人對戰整備室</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- 返回按鈕 (加上安全防護防跳錯) -->
+            <button onclick="navigateLobby()" class="flex items-center gap-2 px-4 py-2 border border-primary/30 rounded-lg hover:bg-surface-variant transition-all text-xs font-label-caps group text-on-surface font-bold">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span class="group-hover:text-primary-fixed-dim">返回大廳</span>
+            </button>
+            
+            <!-- 金幣顯示框 -->
+            <div class="flex items-center gap-2 glass-panel px-4 py-2 rounded-lg border border-primary/20 shadow-[0_0_10px_rgba(0,219,233,0.15)] flex-shrink-0">
+                <span class="flex items-center gap-1.5 font-label-caps text-xs text-primary-fixed-dim font-bold">
+                    <span class="material-symbols-outlined text-primary text-lg select-none drop-shadow-[0_0_8px_rgba(0,219,233,0.6)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+                    金幣: <span id="pvpCoins">0</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主選角面板 -->
+    <main class="relative z-10 w-full max-w-screen-xl flex items-center justify-center gap-12 px-12 box-border h-[calc(100vh-4rem)] pt-16">
+        
+        <!-- Player 1 (Left Slot) -->
+        <div class="flex flex-col items-center justify-center gap-4 w-[320px] flex-shrink-0">
+            <div onclick="cycleP1Character()" class="w-[320px] h-[330px] relative group cursor-pointer active:scale-98 transition-all flex-shrink-0">
+                <div class="absolute -inset-1 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                <div class="glass-panel w-full h-full rounded-xl flex flex-col items-center justify-center p-6 relative overflow-hidden border-l-4 border-l-primary hover:shadow-[0_0_20px_rgba(0,219,233,0.25)]">
+                    <div class="relative z-10 flex flex-col items-center justify-center mb-4">
+                        <div class="w-32 h-32 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center relative glow-cyan animate-pulse">
+                            <span id="p1Icon" class="text-7xl filter drop-shadow-[0_0_15px_rgba(0,219,233,0.6)] transition-all duration-300 group-hover:scale-110">🏃</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 left-4 flex items-center gap-2">
+                        <div class="bg-primary text-background px-2.5 py-0.5 font-label-caps font-bold rounded-sm text-[10px]">P1</div>
+                        <span class="text-primary font-label-caps text-[10px]">PLAYER ONE (A/D)</span>
+                    </div>
+                    <div class="w-full relative z-10 bg-surface/90 backdrop-blur-md p-3 rounded-lg border border-primary/30 text-left">
+                        <h2 id="p1CharName" class="text-2xl font-bold text-white mb-1">賽博跑手</h2>
+                        <p id="p1CharSub" class="font-label-caps text-primary text-[10px] opacity-80 uppercase tracking-widest">NEON RUNNER</p>
+                    </div>
+                </div>
+            </div>
+            <div onclick="cycleP1Racket()" class="glass-panel w-[320px] p-4 rounded-xl border-l-4 border-l-primary flex items-center gap-4 hover:bg-primary/10 transition-all cursor-pointer group active:scale-95 shadow-[0_0_10px_rgba(0,219,233,0.1)] flex-shrink-0">
+                <div class="w-12 h-12 rounded bg-surface flex items-center justify-center border border-primary/30 flex-shrink-0">
+                    <span id="p1RacketIcon" class="text-2xl filter drop-shadow-[0_0_8px_rgba(0,219,233,0.5)]">🏸</span>
+                </div>
+                <div class="flex flex-col text-left">
+                    <span id="p1RacketName" class="font-bold text-on-surface text-sm">標準碳素拍</span>
+                    <span id="p1RacketSub" class="font-label-caps text-[9px] text-primary/70 uppercase">STANDARD CARBON</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VS Divider & Start Button Center -->
+        <div class="w-48 flex flex-col items-center justify-center space-y-10 flex-shrink-0">
+            <div class="relative">
+                <div class="absolute inset-0 blur-2xl bg-secondary-container/20"></div>
+                <div class="text-7xl font-display-lg italic text-on-surface tracking-tighter mix-blend-overlay opacity-30 select-none font-bold">VS</div>
+            </div>
+            <button onclick="startGame()" class="relative group">
+                <div class="absolute -inset-4 bg-primary blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                <div class="bg-primary text-on-primary-container w-36 h-40 rounded-full flex flex-col items-center justify-center border-[6px] border-background shadow-[0_0_30px_rgba(0,219,233,0.5)] hover:scale-105 active:scale-95 transition-all duration-300">
+                    <span class="text-2xl font-black leading-tight tracking-tight text-black">準備</span>
+                    <span class="text-xl font-black leading-tight tracking-tight text-black">戰鬥</span>
+                    <span class="font-label-caps text-[9px] mt-1 opacity-70 text-black font-semibold">START BATTLE</span>
+                </div>
+                <div class="absolute inset-0 rounded-full border border-primary animate-ping opacity-20"></div>
+            </button>
+            <div class="flex flex-col items-center gap-2">
+                <span class="font-label-caps text-[9px] text-on-surface-variant tracking-wider">LOCAL DUAL-PORT</span>
+                <span class="font-label-caps text-[9px] text-[#39ff14]">READY TO CLASH</span>
+            </div>
+        </div>
+
+        <!-- Player 2 (Right Slot) -->
+        <div class="flex flex-col items-center justify-center gap-4 w-[320px] flex-shrink-0">
+            <div onclick="cycleP2Character()" class="w-[320px] h-[330px] relative group cursor-pointer active:scale-98 transition-all flex-shrink-0">
+                <div class="absolute -inset-1 bg-secondary/20 blur-xl opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                <div class="glass-panel w-full h-full rounded-xl flex flex-col items-center justify-center p-6 relative overflow-hidden border-r-4 border-r-secondary hover:shadow-[0_0_20px_rgba(255,0,127,0.25)]">
+                    <div class="relative z-10 flex flex-col items-center justify-center mb-4">
+                        <div class="w-32 h-32 rounded-full bg-secondary/5 border border-secondary/20 flex items-center justify-center relative glow-magenta animate-pulse">
+                            <span id="p2Icon" class="text-7xl filter drop-shadow-[0_0_15px_rgba(255,0,127,0.6)] scale-x-[-1] transition-all duration-300 group-hover:scale-x-[-1.1] group-hover:scale-y-110">🤖</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 right-4 flex items-center gap-2 flex-row-reverse">
+                        <div class="bg-secondary text-on-secondary px-2.5 py-0.5 font-label-caps font-bold rounded-sm text-[10px]">P2</div>
+                        <span class="text-secondary font-label-caps text-[10px]">PLAYER TWO (←/→)</span>
+                    </div>
+                    <div class="w-full relative z-10 bg-surface/90 backdrop-blur-md p-3 rounded-lg border border-secondary/30 text-right">
+                        <h2 id="p2CharName" class="text-2xl font-bold text-white mb-1">鋼鐵機甲</h2>
+                        <p id="p2CharSub" class="font-label-caps text-secondary text-[10px] opacity-80 uppercase tracking-widest">IRON MECHA</p>
+                    </div>
+                </div>
+            </div>
+            <div onclick="cycleP2Racket()" class="glass-panel w-[320px] p-4 rounded-xl border-r-4 border-r-secondary flex flex-row-reverse items-center gap-4 hover:bg-secondary/10 transition-all cursor-pointer group active:scale-95 shadow-[0_0_10px_rgba(255,0,127,0.1)] flex-shrink-0">
+                <div class="w-12 h-12 rounded bg-surface flex items-center justify-center border border-secondary/30 flex-shrink-0">
+                    <span id="p2RacketIcon" class="text-2xl filter drop-shadow-[0_0_8px_rgba(255,0,127,0.5)]">🗡️</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span id="p2RacketName" class="font-bold text-on-surface text-sm">光子光劍</span>
+                    <span id="p2RacketSub" class="font-label-caps text-[9px] text-secondary/70 uppercase">PHOTON SABER</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部鍵盤操作提示 -->
+    <div class="fixed bottom-6 flex justify-center items-center pointer-events-none z-10">
+        <span class="font-label-caps text-xs text-on-surface-variant uppercase tracking-widest">
+            💡 鍵盤選角：[P1玩家] A/D 切換角色，W/S 切換球拍 ｜ [P2玩家] ←/→ 切換角色，↑/↓ 切換球拍 ｜ 按 Enter 鍵直連戰鬥
+        </span>
+    </div>
+</div>
+
+<script>
+    // 0. 安全防護：如果全域未定義 getCyberUrl 則回退至標準路徑
+    if (typeof window.getCyberUrl !== 'function') {
+        window.getCyberUrl = function(url) { return url; };
+    }
+
+    function navigateLobby() {
+        window.location.href = window.getCyberUrl('/lobby');
+    }
+
+    // 1. 同步特工與球拍元數據
+    const CHAR_KEYS = ["neon_runner", "shadow_ninja", "iron_mecha", "cyber_dog", "power_apple"];
+    const RACKET_KEYS = ["standard_carbon", "photon_saber", "vortex_gate", "revenge_log", "cyber_bus"];
+
+    const GEAR_DETAILS = {
+        "characters": {
+            "neon_runner": { "name": "賽博跑手", "icon": "🏃", "sub": "NEON RUNNER" },
+            "shadow_ninja": { "name": "影子忍者", "icon": "🐱‍👤", "sub": "SHADOW NINJA" },
+            "iron_mecha": { "name": "鋼鐵機甲", "icon": "🤖", "sub": "IRON MECHA" },
+            "cyber_dog": { "name": "柴犬汪星人", "icon": "🐶", "sub": "CYBER DOG" },
+            "power_apple": { "name": "爆能蘋果", "icon": "🍎", "sub": "POWER APPLE" }
+        },
+        "rackets": {
+            "standard_carbon": { "name": "標準碳素拍", "icon": "🏸", "sub": "STANDARD CARBON" },
+            "photon_saber": { "name": "光子光劍", "icon": "🗡️", "sub": "PHOTON SABER" },
+            "vortex_gate": { "name": "漩渦重力拍", "icon": "🌀", "sub": "VORTEX GATE" },
+            "revenge_log": { "name": "復仇滾木", "icon": "🌲", "sub": "REVENGE LOG" },
+            "cyber_bus": { "name": "賽博瘋狂巴士", "icon": "🚌", "sub": "CYBER BUS" }
+        }
+    };
+
+    // 2. 初始化選定索引
+    let p1CharIdx = 0;
+    let p1RacketIdx = 0;
+    let p2CharIdx = 2;
+    let p2RacketIdx = 1;
+
+    // 3. 點擊循環選角控制器 (P1)
+    function cycleP1Character() {
+        p1CharIdx = (p1CharIdx + 1) % CHAR_KEYS.length;
+        renderP1UI();
+    }
+    function cycleP1Racket() {
+        p1RacketIdx = (p1RacketIdx + 1) % RACKET_KEYS.length;
+        renderP1UI();
+    }
+
+    // 4. 點擊循環選角控制器 (P2)
+    function cycleP2Character() {
+        p2CharIdx = (p2CharIdx + 1) % CHAR_KEYS.length;
+        renderP2UI();
+    }
+    function cycleP2Racket() {
+        p2RacketIdx = (p2RacketIdx + 1) % RACKET_KEYS.length;
+        renderP2UI();
+    }
+
+    // 5. 渲染 P1 UI
+    function renderP1UI() {
+        const charKey = CHAR_KEYS[p1CharIdx];
+        const racketKey = RACKET_KEYS[p1RacketIdx];
+        
+        const char = GEAR_DETAILS.characters[charKey];
+        const racket = GEAR_DETAILS.rackets[racketKey];
+
+        document.getElementById("p1Icon").innerText = char.icon;
+        document.getElementById("p1CharName").innerText = char.name;
+        document.getElementById("p1CharSub").innerText = char.sub;
+
+        document.getElementById("p1RacketIcon").innerText = racket.icon;
+        document.getElementById("p1RacketName").innerText = racket.name;
+        document.getElementById("p1RacketSub").innerText = `${racket.sub} RACKET`;
+    }
+
+    // 6. 渲染 P2 UI
+    function renderP2UI() {
+        const charKey = CHAR_KEYS[p2CharIdx];
+        const racketKey = RACKET_KEYS[p2RacketIdx];
+        
+        const char = GEAR_DETAILS.characters[charKey];
+        const racket = GEAR_DETAILS.rackets[racketKey];
+
+        document.getElementById("p2Icon").innerText = char.icon;
+        document.getElementById("p2CharName").innerText = char.name;
+        document.getElementById("p2CharSub").innerText = char.sub;
+
+        document.getElementById("p2RacketIcon").innerText = racket.icon;
+        document.getElementById("p2RacketName").innerText = racket.name;
+        document.getElementById("p2RacketSub").innerText = `${racket.sub} RACKET`;
+    }
+
+    // 7. 動態金幣同步
+    function fetchCoins() {
+        const activeUser = getUrlParam('user') || "CyberPlayer";
+        fetch(`/api/user_info?user=${encodeURIComponent(activeUser)}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("pvpCoins").innerText = data.coins;
+            })
+            .catch(err => {
+                document.getElementById("pvpCoins").innerText = "300";
+            });
+    }
+
+    // 8. 準備戰鬥按鍵跳轉
+    function startGame() {
+        const p1Char = CHAR_KEYS[p1CharIdx];
+        const p1Racket = RACKET_KEYS[p1RacketIdx];
+        const p2Char = CHAR_KEYS[p2CharIdx];
+        const p2Racket = RACKET_KEYS[p2RacketIdx];
+
+        const targetUrl = `/game?mode=local_pvp&p1_char=${p1Char}&p1_racket=${p1Racket}&p2_char=${p2Char}&p2_racket=${p2Racket}`;
+        window.location.href = window.getCyberUrl(targetUrl);
+    }
+
+    // 9. 街機鍵盤選角監聽器 (P1: WASD / P2: 方向鍵)
+    document.addEventListener("keydown", (e) => {
+        const key = e.key.toLowerCase();
+        
+        // --- Player 1 (W/A/S/D) ---
+        if (key === 'a') {
+            p1CharIdx = (p1CharIdx - 1 + CHAR_KEYS.length) % CHAR_KEYS.length;
+            renderP1UI();
+        } else if (key === 'd') {
+            p1CharIdx = (p1CharIdx + 1) % CHAR_KEYS.length;
+            renderP1UI();
+        } else if (key === 'w') {
+            p1RacketIdx = (p1RacketIdx - 1 + RACKET_KEYS.length) % RACKET_KEYS.length;
+            renderP1UI();
+        } else if (key === 's') {
+            p1RacketIdx = (p1RacketIdx + 1) % RACKET_KEYS.length;
+            renderP1UI();
+        }
+        
+        // --- Player 2 (方向鍵) ---
+        if (e.key === "ArrowLeft") {
+            p2CharIdx = (p2CharIdx - 1 + CHAR_KEYS.length) % CHAR_KEYS.length;
+            renderP2UI();
+        } else if (e.key === "ArrowRight") {
+            p2CharIdx = (p2CharIdx + 1) % CHAR_KEYS.length;
+            renderP2UI();
+        } else if (e.key === "ArrowUp") {
+            p2RacketIdx = (p2RacketIdx - 1 + RACKET_KEYS.length) % RACKET_KEYS.length;
+            renderP2UI();
+        } else if (e.key === "ArrowDown") {
+            p2RacketIdx = (p2RacketIdx + 1) % RACKET_KEYS.length;
+            renderP2UI();
+        }
+        
+        // --- 快捷確認進入對戰 (Enter / Space) ---
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            startGame();
+        }
+    });
+
+    // 參數解析工具
+    function getUrlParam(name) {
+        let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        let r = window.location.search.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        return null;
+    }
+
+    // 初始化渲染
+    renderP1UI();
+    renderP2UI();
+    fetchCoins();
+</script>
+{% endblock %}

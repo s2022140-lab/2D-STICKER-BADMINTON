@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}CYBER ARENA | 2D STICKMAN BADMINTON{% endblock %}
+
+{% block content %}
+<!-- 鋼鐵鎖屏頂層容器 -->
+<div class="fixed inset-0 h-screen w-screen overflow-hidden flex flex-col items-center bg-[#000000] z-30 m-0 p-0 select-none">
+
+    <!-- 全域頂端狀態控制條 -->
+    <header class="w-full h-16 px-12 flex justify-between items-center border-b border-outline-variant/30 bg-surface/85 backdrop-blur-xl flex-shrink-0">
+        <div class="flex items-center gap-4">
+            <span class="font-display-lg text-2xl md:text-3xl text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.5)] font-bold">CYBER ARENA</span>
+            <div class="h-6 w-px bg-outline-variant mx-2"></div>
+            <span id="gameModeLabel" class="text-on-surface-variant font-medium text-sm">LOADING MATCH...</span>
+        </div>
+        
+        <!-- 退出球場返回大廳按鈕 -->
+        <button onclick="abortMatchAndLeave()" class="flex items-center gap-2 px-4 py-2 border border-error/30 rounded-lg hover:bg-error/10 transition-all font-label-caps text-xs text-error group">
+            <span class="material-symbols-outlined text-sm">disabled_by_default</span>
+            <span class="group-hover:text-red-400">退出終端 EXIT</span>
+        </button>
+    </header>
+
+    <!-- 遊戲球場 Canvas 核心容器 -->
+    <main class="flex-grow flex flex-col items-center justify-center relative px-12 overflow-hidden box-border h-[calc(100vh-4rem)]">
+        
+        <!-- 頂部電競全息 HUD 面板 -->
+        <div class="w-[1200px] flex justify-between items-center mb-3 px-4 py-2.5 glass-panel rounded-xl border border-outline/10 bg-surface-container/20">
+            <!-- P1 戰況與出戰球拍面板 -->
+            <div class="flex items-center gap-4 text-left">
+                <div class="w-12 h-12 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center text-3xl shadow-[0_0_10px_rgba(0,240,255,0.2)] flex-shrink-0">
+                    <span id="p1Avatar">🏃</span>
+                </div>
+                <!-- P1 武器球拍圖標內嵌 -->
+                <div class="w-12 h-12 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-center text-3xl shadow-[0_0_8px_rgba(0,240,255,0.1)] flex-shrink-0">
+                    <span id="p1RacketAvatar">🏸</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-sm text-primary font-bold"><span id="p1Name">---</span> <span id="p1RacketName" class="text-xs text-on-surface-variant font-medium ml-2">---</span></h3>
+                    <p class="font-label-caps text-[9px] text-on-surface-variant">P1 CHARGE CORE / 超能大招核心</p>
+                    <!-- P1 大招 8 格能量格核心 -->
+                    <div id="p1EnergyGrid" class="flex gap-1 mt-1">
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-primary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VS 中央終端提示 -->
+            <div class="text-center flex flex-col items-center">
+                <span class="font-label-caps text-[10px] text-on-surface-variant tracking-[0.3em]">SECURE LINK</span>
+                <span id="vsScore" class="font-display-lg text-2xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary font-black tracking-widest drop-shadow-[0_0_10px_rgba(0,219,233,0.3)]">0 : 0</span>
+            </div>
+
+            <!-- P2 / AI 戰況與出戰球拍面板 -->
+            <div class="flex items-center gap-4 text-right flex-row-reverse">
+                <div class="w-12 h-12 rounded-lg bg-secondary/10 border border-secondary/30 flex items-center justify-center text-3xl shadow-[0_0_10px_rgba(255,0,127,0.25)] flex-shrink-0">
+                    <span id="p2Avatar">🤖</span>
+                </div>
+                <!-- P2 武器球拍圖標內嵌 -->
+                <div class="w-12 h-12 rounded-lg bg-secondary/5 border border-secondary/20 flex items-center justify-center text-3xl shadow-[0_0_8px_rgba(255,0,127,0.15)] flex-shrink-0">
+                    <span id="p2RacketAvatar">🏸</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-sm text-secondary font-bold"><span id="p2RacketName" class="text-xs text-on-surface-variant font-medium mr-2">---</span> <span id="p2Name">---</span></h3>
+                    <p class="font-label-caps text-[9px] text-on-surface-variant">P2 CHARGE CORE / 超能大招核心</p>
+                    <!-- P2 大招 8 格能量格核心 -->
+                    <div id="p2EnergyGrid" class="flex gap-1 mt-1 justify-end">
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                        <span class="w-3.5 h-4.5 border border-secondary/20 bg-black/40 rounded-sm transition-all duration-300"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 唯一的 HTML5 畫布，去掉了多余外层发光内框 -->
+        <div class="relative overflow-hidden rounded-2xl shadow-2xl">
+            <canvas id="gameCanvas" width="1200" height="600" class="block bg-black"></canvas>
+        </div>
+
+        <!-- 下方按鍵操作提示 -->
+        <div class="w-[1200px] mt-4 grid grid-cols-2 gap-8 text-[11px] text-on-surface-variant font-medium">
+            <div class="flex items-center gap-3 p-3 glass-panel rounded-xl border border-outline/5 text-left">
+                <span>1P: <span class="text-white">A/D 移動</span> | <span class="text-white">W 跳躍</span> | <span class="text-white">S 扣球/發球</span> | <strong class="text-primary font-bold">E 釋放大招</strong></span>
+            </div>
+            <div class="flex items-center gap-3 p-3 glass-panel rounded-xl border border-outline/5 text-right flex-row-reverse">
+                <span>2P: <span class="text-white">←/→ 移動</span> | <span class="text-white">↑ 跳躍</span> | <span class="text-white">↓ 扣球/發球</span> | <strong class="text-secondary-fixed-dim font-bold">Enter 釋放大招</strong></span>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 7大金剛順序加載 -->
+<script src="{{ url_for('static', filename='js/game_physics.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/weapons.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/player_actions.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/enemy.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/game_ui.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/game_render.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/network.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/game_core.js') }}" defer></script>
+
+<script>
+    function abortMatchAndLeave() {
+        if (confirm("⚡ 警告：是否確認退出？")) {
+            window.location.href = window.getCyberUrl('/lobby');
+        }
+    }
+</script>
+{% endblock %}
